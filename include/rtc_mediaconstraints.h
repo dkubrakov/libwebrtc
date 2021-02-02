@@ -68,6 +68,6 @@ class RTCMediaConstraints : public RefCountInterface {
   virtual ~RTCMediaConstraints() {}
 };
 
-} // namespace libwebrtc
+};  // namespace libwebrtc
 
 #endif  // LIB_WEBRTC_RTC_MEDIA_CONSTRAINTS_HXX

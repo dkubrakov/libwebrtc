@@ -9,6 +9,7 @@
 #include "rtc_base/bind.h"
 #include "rtc_base/callback.h"
 #include "rtc_base/logging.h"
+#include "rtc_rtp_sender_impl.h"
 
 #include <functional>
 #include <utility>
@@ -586,6 +587,45 @@ bool RTCPeerConnectionImpl::GetStats(
       rtc_observer.get(), impl->rtc_track(),
       webrtc::PeerConnectionInterface::kStatsOutputLevelDebug);
 }
+
+    scoped_refptr<RTCRtpSender>
+    RTCPeerConnectionImpl::AddTrack(scoped_refptr<RTCMediaTrack> track,
+                                    const char* stream_ids) {
+        std::vector<std::string> streamIds = {stream_ids};
+        if(strcmp("audio",track->kind()) == 0) {
+            AudioTrackImpl* impl = static_cast<AudioTrackImpl*>(track.get());
+            auto result_or_error = rtc_peerconnection_->AddTrack(impl->rtc_track(), streamIds);
+            if (!result_or_error.ok()) {
+                RTC_LOG(LS_ERROR) << "Failed to add track to PeerConnection: "
+                                  << result_or_error.error().message();
+                strncpy(message_, result_or_error.error().message(), sizeof(message_));
+            } else {
+                std::string msg("AudioTrack OK");
+                strncpy(message_, msg.c_str(), sizeof(message_));
+                rtc::scoped_refptr<webrtc::RtpSenderInterface> rtpSender = result_or_error.value();
+                scoped_refptr<RTCRtpSender> sender = new RefCountedObject<RTCRtpSenderImpl>(rtpSender);
+                msg = msg + " + Sender id=" + sender->id();
+                strncpy(message_, msg.c_str(), sizeof(message_));
+                return sender;
+            }
+        } else if(strcmp("video",track->kind()) == 0) {
+            VideoTrackImpl* impl = static_cast<VideoTrackImpl*>(track.get());
+            auto result_or_error = rtc_peerconnection_->AddTrack(impl->rtc_track(), streamIds);
+            if (!result_or_error.ok()) {
+                RTC_LOG(LS_ERROR) << "Failed to add track to PeerConnection: "
+                                  << result_or_error.error().message();
+                strncpy(message_, result_or_error.error().message(), sizeof(message_));
+            } else {
+                strncpy(message_, "VideoTrack OK", sizeof(message_));
+                rtc::scoped_refptr<webrtc::RtpSenderInterface> rtpSender = result_or_error.value();
+                scoped_refptr<RTCRtpSender> sender = new RefCountedObject<RTCRtpSenderImpl>(rtpSender);
+                return sender;
+            }
+        } else {
+            RTC_LOG(LS_ERROR) << "Unknown track type (audio/video)";
+        }
+        return nullptr;
+    }
 
 void WebRTCStatsObserver::OnComplete(const webrtc::StatsReports& reports) {
   MediaTrackStatistics stats;

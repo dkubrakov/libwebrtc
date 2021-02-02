@@ -89,6 +89,13 @@ class RTCPeerConnectionImpl : public RTCPeerConnection,
   virtual bool GetStats(const RTCVideoTrack* track,
                         scoped_refptr<TrackStatsObserver> observer) override;
 
+  virtual scoped_refptr<RTCRtpSender> AddTrack(scoped_refptr<RTCMediaTrack> track,
+                                               const char* stream_ids) override;
+
+  virtual const char* message() override {
+      return message_;
+  };
+
  public:
   RTCPeerConnectionImpl(
       const RTCConfiguration& configuration,
@@ -138,6 +145,7 @@ class RTCPeerConnectionImpl : public RTCPeerConnection,
   MediaStreamVector local_streams_;
   MediaStreamVector remote_streams_;
   scoped_refptr<RTCDataChannel> data_channel_;
+  char message_[kMaxStringLength] = "";
 };
 
 } // namespace libwebrtc
